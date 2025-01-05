@@ -1,0 +1,14 @@
+{
+    "require": {
+        "kreait/firebase-php": "^5.26",
+        "guzzlehttp/guzzle": "^7.9"
+    },
+
+    "name": "php-gallery-app",
+    "description": "Une galerie d'images hébergée sur Heroku",
+    "require": {
+        "php": "^7.4"
+    }
+
+
+}
