@@ -101,7 +101,7 @@ end;
 
 **Résultat**:
 - Une ligne de préparation article pour chaque article de l'opération sur le BT créé
-- Une ligne de préparation article pour chaque article de la gamme sur le BT créé
+- **Aucune ligne de préparation pour les articles de gamme** (ils sont ignorés)
 
 ```pascal
 // Préparation des articles pour le BT
@@ -109,30 +109,17 @@ if PreparationArticle and (GenereGam = False) then
 begin
   OTrace.StepTrace(TID,'Préparation Article ! (Ope : '+ IntToStr(ANumOpe));
   
-  // 1. Préparation des articles de l'opération sur le BT
+  // SEULEMENT les articles de l'opération sur le BT
   Prepare_Article(Acoduti, StPrefix, qyRecOpeArt, ANumEQU, NumBT, NumOT, 1, ANumope, -1);
   
-  // 2. Préparation des articles de TOUTES les gammes sur le BT
-  qyRecGam.Close;
-  qyRecGam.ParamByName('NumOpe').Value := ANumOpe;
-  qyRecGam.Open;
-  qyRecGam.First;
-  
-  if not qyRecGam.IsEmpty then
-  begin
-    while not qyRecGam.EOF do
-    begin
-      // Préparation des articles de chaque gamme
-      Prepare_Article(Acoduti, StPrefix, qyRecArtGam, ANumEQU, NumBT, NumOT, NBOT + qyRecGam.FieldByName('ID_ORD').AsInteger, ANumope, qyRecGam.FieldByName('ID_ORD').AsInteger);
-      qyRecGam.Next;
-    end;
-  end;
+  // PAS d'appel Prepare_Article pour qyRecArtGam dans ce cas
+  // Les articles de gamme ne sont PAS préparés quand GenereGam = False
 end;
 ```
 
-### Double préparation:
-1. **Articles d'opération**: Via `qyRecOpeArt` sur le BT (NumOT = 1)
-2. **Articles de gamme**: Via `qyRecArtGam` pour chaque gamme sur le BT
+### Préparation unique:
+- **Articles d'opération seulement**: Via `qyRecOpeArt` sur le BT (NumOT = 1)
+- **Articles de gamme**: **Ignorés** (pas de préparation)
 
 ## Synthèse des Comportements
 
@@ -140,7 +127,7 @@ end;
 |-----|--------------|-----------|-------------------|----------------|-------|
 | 1   | False        | False     | ✅ Préparés       | ❌ N/A         | BT    |
 | 2   | True         | True      | ❌ Ignorés        | ✅ Préparés    | OT    |
-| 3   | True         | False     | ✅ Préparés       | ✅ Préparés    | BT    |
+| 3   | True         | False     | ✅ Préparés       | ❌ Ignorés     | BT    |
 
 ## Structure des Appels Prepare_Article
 
@@ -160,8 +147,17 @@ procedure Prepare_Article(
 
 ## Implications Métier
 
-- **Cas 1**: Travail simple sans décomposition en tâches
-- **Cas 2**: Travail complexe avec tâches indépendantes et articles spécifiques par tâche
-- **Cas 3**: Travail complexe traité comme un bloc unique avec consolidation des articles
+- **Cas 1**: Travail simple sans décomposition en tâches - seuls les articles d'opération sont nécessaires
+- **Cas 2**: Travail complexe avec tâches indépendantes - chaque tâche a ses propres articles spécifiques
+- **Cas 3**: Travail complexe traité comme un bloc unique - seuls les articles généraux d'opération sont utilisés, les articles spécifiques aux tâches sont ignorés
 
 Cette logique permet une gestion flexible des ressources selon la complexité et le mode d'exécution souhaité pour les opérations de maintenance.
+
+## Note sur le Cas 3
+
+Dans le cas 3, la logique métier considère que si les gammes ne sont pas générées séparément (`GenereGam = False`), alors l'opération sera exécutée comme un bloc monolithique. Dans ce contexte :
+
+- Les **articles d'opération** représentent les ressources générales nécessaires pour l'ensemble du travail
+- Les **articles de gamme** sont considérés comme des détails techniques qui ne nécessitent pas de préparation spécifique puisque les tâches ne sont pas individualisées
+
+Cette approche simplifie la préparation en se concentrant uniquement sur les ressources principales de l'opération, tout en conservant la possibilité de consulter les détails des gammes sans les matérialiser en préparations distinctes.
