@@ -58,14 +58,31 @@ if PreparationArticle and (GenereGam = False) then
 begin
   OTrace.StepTrace(TID,'Préparation Article ! (Ope : '+ IntToStr(ANumOpe)+' - '+booltostr(GenereGam,true));
   
-  // SEULEMENT les articles de l'opération
+  // 1. TOUJOURS préparer les articles de l'opération sur le BT
   // - Cas 1 (GammeTrouvee = False): Articles d'opération car pas de gammes
-  // - Cas 3 (GammeTrouvee = True, GenereGam = False): Articles d'opération uniquement, gammes ignorées
+  // - Cas 3 (GammeTrouvee = True, GenereGam = False): Articles d'opération + articles de gamme
   Prepare_Article(Acoduti, StPrefix, qyRecOpeArt, ANumEQU, NumBT, NumOT, 1, ANumope, -1);
   
-  // NOTE IMPORTANTE: 
-  // Les articles de gamme (qyRecArtGam) ne sont PAS préparés dans ce bloc
-  // même dans le cas 3 où des gammes existent mais ne sont pas générées
+  // 2. Si des gammes existent (Cas 3), préparer AUSSI les articles de gamme sur le BT
+  if GammeTrouvee then
+  begin
+    // Parcourir toutes les gammes pour récupérer leurs articles
+    qyRecGam.Close;
+    qyRecGam.ParamByName('NumOpe').Value := ANumOpe;
+    qyRecGam.Open;
+    qyRecGam.First;
+    
+    if not qyRecGam.IsEmpty then
+    begin
+      while not qyRecGam.EOF do
+      begin
+        // Préparation des articles de chaque gamme sur le BT (pas sur OT séparés)
+        Prepare_Article(Acoduti, StPrefix, qyRecArtGam, ANumEQU, NumBT, NumOT, NBOT + qyRecGam.FieldByName('ID_ORD').AsInteger, ANumope, qyRecGam.FieldByName('ID_ORD').AsInteger);
+        qyRecGam.Next;
+      end;
+    end;
+    qyRecGam.Close;
+  end;
 end;
 
 // ============================================================================
@@ -129,11 +146,11 @@ CAS 1: GammeTrouvee = False, GenereGam = False
 
 CAS 2: GammeTrouvee = True, GenereGam = True  
 - Articles d'opération → IGNORES
-- Articles de gamme → Préparés sur OT séparés
+- Articles de gamme → Préparés sur OT séparés (un OT par gamme)
 
 CAS 3: GammeTrouvee = True, GenereGam = False
 - Articles d'opération → Préparés sur BT
-- Articles de gamme → IGNORES (bien que les gammes existent)
+- Articles de gamme → Préparés sur BT (consolidés avec les articles d'opération)
 }
 
 // ============================================================================
