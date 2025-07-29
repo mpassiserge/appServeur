@@ -1,0 +1,153 @@
+<?xml version="1.0"?>
+<!-- édité avec XMLSpy v2017 (x64) (http://www.altova.com) par APAVE (Apave SA) -->
+<!-- edited with XMLSpy v2016 rel. 2 sp1 (x64) (http://www.altova.com) by MAINTA (SA APAVE) -->
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:mainta="http://www.apave.com/france/web/loc/TR/WD-mainta" xmlns:xslc="http://xslcomponents.org/TR/WD-xslc" version="1.0" exclude-result-prefixes="mainta">
+	<xsl:import href="..\..\xslc.xsl"/>
+	<xsl:import href="..\..\Treeview.xsl"/>
+	<xsl:import href="..\..\Common.xsl"/>
+	<xsl:import href="..\..\mainta.xsl"/>
+	<xsl:import href="..\..\perscreen.xsl"/>
+	<xsl:import href="..\..\mainta_templates.xsl"/>
+	<xsl:import href="..\..\maintatools.xsl"/>
+	<xsl:template match="/">
+		<xsl:apply-templates select="document"/>
+	</xsl:template>
+	<xsl:template match="document">
+		<xsl:choose>
+			<xsl:when test="/document/Params/EMBEDDED='YES'">
+				<script language="javascript"><![CDATA[DBBatchTableObj.ROWs[']]><xsl:value-of select="/document/BT/ID_NUMBT"/><![CDATA['] = ]]><xsl:call-template name="mainta:XMLtoJSON">
+						<xsl:with-param name="node" select="/document/BT"/>
+					</xsl:call-template><![CDATA[;]]></script>
+				<div id="{generate-id()}" class="subrowcontent subrow" aria-multiselectable="true" role="tablist">
+					<xsl:apply-templates select="activepage"/>
+				</div>
+			</xsl:when>
+			<xsl:otherwise>
+				<xsl:call-template name="mainta:Page">
+					<xsl:with-param name="Title">
+						<xsl:value-of select="/document/Locales/SaisieE39"/>
+					</xsl:with-param>
+					<xsl:with-param name="DisplayVolet">1</xsl:with-param>
+					<xsl:with-param name="WantCompletion">1</xsl:with-param>
+					<xsl:with-param name="DisplayAlarm">1</xsl:with-param>
+					<xsl:with-param name="Head">
+						<xsl:call-template name="mainta:nocache"/>
+						<style type="text/css">
+							.alarm-message {
+								margin-top: 2px;
+								padding: 4px 8px;
+								border-radius: 3px;
+								font-size: 12px;
+								display: none;
+							}
+							.alarm-message.warning {
+								background-color: #fff3cd;
+								border: 1px solid #ffeaa7;
+								color: #856404;
+							}
+							.alarm-message.error {
+								background-color: #f8d7da;
+								border: 1px solid #f5c6cb;
+								color: #721c24;
+							}
+						</style>
+						<script language="javascript" src="{$XMLC_Portal}md5.js"/>
+						<script language="javascript" src="{/document/Aliases/MOS_XML}XLookup.js"/>
+						<script language="javascript" src="{$JSlibsPath}E39-v1.0.js"/>
+						<script language="javascript"><![CDATA[var submitted = false;
+var alarmfieldsvisible = '';
+function onExit()
+{
+  if (!submitted){
+    if (confirm("]]><xsl:value-of select="/document/Locales/ExitMessage"/><![CDATA[")){return true;} else {return false;}}
+  else
+  return true;
+}
+
+]]></script>
+						<script language="javascript" src="{$JSlibsPath}Adresses.js?V={$JSVersion}"/>
+						<script language="javascript">function initLocales() {	<xsl:for-each select="/document/Locales/*">
+								<xsl:choose>
+									<xsl:when test="substring(name(),1,3) = 'MOS'">Locales.<xsl:value-of select="name()"/> = "<xsl:value-of select="."/>"; </xsl:when>
+								</xsl:choose>
+							</xsl:for-each>}initLocales();				    </script>
+						<xsl:call-template name="mainta:FileHeader"/>
+						<script language="javascript" src="{$JSlibsPath}Adresses.js?V={$JSVersion}"/>
+						<script language="javascript"><![CDATA[var srcMode =']]><xsl:value-of select="/document/Params/E39ACTION"/><![CDATA[';
+
+// Fonction de validation pour le champ ID-NUMDOC
+function validateIDNUMDOC() {
+    var field = document.getElementById('ID-NUMDOC');
+    if (field) {
+        // Appel de checkfield avec les paramètres nécessaires pour le serveur
+        return checkfield(field, 'ID-NUMDOC', 'CheckFieldE39BeforeXMLGram');
+    }
+    return true;
+}
+
+// Validation automatique lors du changement de valeur
+function setupIDNUMDOCValidation() {
+    var field = document.getElementById('ID-NUMDOC');
+    if (field) {
+        field.onblur = function() {
+            // Validation avec gestion des messages d'alarme
+            var result = checkfield(this, 'ID-NUMDOC', 'CheckFieldE39BeforeXMLGram');
+            handleValidationResult(this, result);
+        };
+        field.onchange = function() {
+            var result = checkfield(this, 'ID-NUMDOC', 'CheckFieldE39BeforeXMLGram');
+            handleValidationResult(this, result);
+        };
+    }
+}
+
+// Gestion du résultat de validation (messages d'alarme)
+function handleValidationResult(field, result) {
+    // Récupération du message d'alarme si présent
+    var alarmMsg = Context.GetValue('MSG');
+    var alarmType = Context.GetValue('ALTYPE');
+    
+    if (alarmMsg && alarmMsg !== '') {
+        // Affichage du message d'alarme (warning)
+        if (alarmType === '1') {
+            showAlarmMessage(field, alarmMsg, 'warning');
+        }
+    } else {
+        // Effacement des messages précédents si validation OK
+        clearAlarmMessage(field);
+    }
+}
+
+// Affichage des messages d'alarme
+function showAlarmMessage(field, message, type) {
+    var alarmDiv = document.getElementById(field.id + '_alarm');
+    if (!alarmDiv) {
+        alarmDiv = document.createElement('div');
+        alarmDiv.id = field.id + '_alarm';
+        alarmDiv.className = 'alarm-message ' + type;
+        field.parentNode.insertBefore(alarmDiv, field.nextSibling);
+    }
+    alarmDiv.innerHTML = message;
+    alarmDiv.style.display = 'block';
+}
+
+// Effacement des messages d'alarme
+function clearAlarmMessage(field) {
+    var alarmDiv = document.getElementById(field.id + '_alarm');
+    if (alarmDiv) {
+        alarmDiv.style.display = 'none';
+    }
+}
+
+// Initialisation après le chargement de la page
+window.onload = function() {
+    setupIDNUMDOCValidation();
+};
+
+]]></script>
+					</xsl:with-param>
+				</xsl:call-template>
+			</xsl:otherwise>
+		</xsl:choose>
+	</xsl:template>
+</xsl:stylesheet>
