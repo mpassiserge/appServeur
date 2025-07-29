@@ -55,3 +55,38 @@ function onExit()
 						<xsl:call-template name="mainta:FileHeader"/>
 						<script language="javascript" src="{$JSlibsPath}Adresses.js?V={$JSVersion}"/>
 						<script language="javascript"><![CDATA[var srcMode =']]><xsl:value-of select="/document/Params/E39ACTION"/><![CDATA[';
+
+// Fonction de validation pour le champ ID-NUMDOC
+function validateIDNUMDOC() {
+    var field = document.getElementById('ID-NUMDOC');
+    if (field) {
+        return checkfield(field, 'ID-NUMDOC');
+    }
+    return true;
+}
+
+// Validation automatique lors du changement de valeur
+function setupIDNUMDOCValidation() {
+    var field = document.getElementById('ID-NUMDOC');
+    if (field) {
+        field.onblur = function() {
+            checkfield(this, 'ID-NUMDOC');
+        };
+        field.onchange = function() {
+            checkfield(this, 'ID-NUMDOC');
+        };
+    }
+}
+
+// Initialisation après le chargement de la page
+window.onload = function() {
+    setupIDNUMDOCValidation();
+};
+
+]]></script>
+					</xsl:with-param>
+				</xsl:call-template>
+			</xsl:otherwise>
+		</xsl:choose>
+	</xsl:template>
+</xsl:stylesheet>
