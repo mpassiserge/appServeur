@@ -32,6 +32,25 @@
 					<xsl:with-param name="DisplayAlarm">1</xsl:with-param>
 					<xsl:with-param name="Head">
 						<xsl:call-template name="mainta:nocache"/>
+						<style type="text/css">
+							.alarm-message {
+								margin-top: 2px;
+								padding: 4px 8px;
+								border-radius: 3px;
+								font-size: 12px;
+								display: none;
+							}
+							.alarm-message.warning {
+								background-color: #fff3cd;
+								border: 1px solid #ffeaa7;
+								color: #856404;
+							}
+							.alarm-message.error {
+								background-color: #f8d7da;
+								border: 1px solid #f5c6cb;
+								color: #721c24;
+							}
+						</style>
 						<script language="javascript" src="{$XMLC_Portal}md5.js"/>
 						<script language="javascript" src="{/document/Aliases/MOS_XML}XLookup.js"/>
 						<script language="javascript" src="{$JSlibsPath}E39-v1.0.js"/>
@@ -60,7 +79,8 @@ function onExit()
 function validateIDNUMDOC() {
     var field = document.getElementById('ID-NUMDOC');
     if (field) {
-        return checkfield(field, 'ID-NUMDOC');
+        // Appel de checkfield avec les paramètres nécessaires pour le serveur
+        return checkfield(field, 'ID-NUMDOC', 'CheckFieldE39BeforeXMLGram');
     }
     return true;
 }
@@ -70,11 +90,52 @@ function setupIDNUMDOCValidation() {
     var field = document.getElementById('ID-NUMDOC');
     if (field) {
         field.onblur = function() {
-            checkfield(this, 'ID-NUMDOC');
+            // Validation avec gestion des messages d'alarme
+            var result = checkfield(this, 'ID-NUMDOC', 'CheckFieldE39BeforeXMLGram');
+            handleValidationResult(this, result);
         };
         field.onchange = function() {
-            checkfield(this, 'ID-NUMDOC');
+            var result = checkfield(this, 'ID-NUMDOC', 'CheckFieldE39BeforeXMLGram');
+            handleValidationResult(this, result);
         };
+    }
+}
+
+// Gestion du résultat de validation (messages d'alarme)
+function handleValidationResult(field, result) {
+    // Récupération du message d'alarme si présent
+    var alarmMsg = Context.GetValue('MSG');
+    var alarmType = Context.GetValue('ALTYPE');
+    
+    if (alarmMsg && alarmMsg !== '') {
+        // Affichage du message d'alarme (warning)
+        if (alarmType === '1') {
+            showAlarmMessage(field, alarmMsg, 'warning');
+        }
+    } else {
+        // Effacement des messages précédents si validation OK
+        clearAlarmMessage(field);
+    }
+}
+
+// Affichage des messages d'alarme
+function showAlarmMessage(field, message, type) {
+    var alarmDiv = document.getElementById(field.id + '_alarm');
+    if (!alarmDiv) {
+        alarmDiv = document.createElement('div');
+        alarmDiv.id = field.id + '_alarm';
+        alarmDiv.className = 'alarm-message ' + type;
+        field.parentNode.insertBefore(alarmDiv, field.nextSibling);
+    }
+    alarmDiv.innerHTML = message;
+    alarmDiv.style.display = 'block';
+}
+
+// Effacement des messages d'alarme
+function clearAlarmMessage(field) {
+    var alarmDiv = document.getElementById(field.id + '_alarm');
+    if (alarmDiv) {
+        alarmDiv.style.display = 'none';
     }
 }
 
